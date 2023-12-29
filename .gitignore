@@ -20,5 +20,8 @@
 # Go workspace file
 go.work
 
+# torrent files
+torrents
+
 # credentials
 config/config.yaml

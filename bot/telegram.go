@@ -2,7 +2,10 @@ package bot
 
 import (
 	"fmt"
+	"io"
 	"log"
+	"net/http"
+	"os"
 	"time"
 
 	"github.com/Coolknight/transmission-telegram-bot/transmission"
@@ -17,7 +20,6 @@ type Bot struct {
 // NewBot initializes a new Telegram bot
 func NewBot(token string) (*Bot, error) {
 	botAPI, err := tgbotapi.NewBotAPI(token)
-	fmt.Println("NewBot")
 	if err != nil {
 		return nil, err
 	}
@@ -38,6 +40,8 @@ func (b *Bot) Start(transmission *transmission.Client) {
 	// a large backlog of old messages
 	time.Sleep(time.Millisecond * 500)
 	updates.Clear()
+
+	log.Println("Bot ready.")
 
 	for update := range updates {
 		if update.Message == nil {
@@ -76,25 +80,34 @@ func (b *Bot) HandleDownloadCommand(updates <-chan tgbotapi.Update, chatID int64
 
 	// Listen for the user's input
 	for update := range updates {
-		var err error
 		if update.Message == nil {
 			continue
 		}
 		// Handle the user's input based on isTorrent flag
 		if isTorrent {
 			if update.Message.Document != nil {
-				fileLink, err = b.BotAPI.GetFileDirectURL(update.Message.Document.FileID)
+				file, err := b.BotAPI.GetFile(tgbotapi.FileConfig{FileID: update.Message.Document.FileID})
 				if err != nil {
 					log.Println("Error getting file link:", err)
 					// Handle the error as needed
 					return
 				}
+				// Create folder if does not exist
+				if _, err := os.Stat("torrents"); os.IsNotExist(err) {
+					err := os.Mkdir("torrents", 0755)
+					if err != nil {
+						log.Panic("Cannot create folder for torrents:", err)
+					}
+				}
+				fileLink = fmt.Sprintf("torrents/%s.torrent", update.Message.Document.FileID)
+				torrentURL := fmt.Sprintf("https://api.telegram.org/file/bot%s/%s", b.BotAPI.Token, file.FilePath)
+				downloadTorrent(fileLink, torrentURL)
 			}
-			break
+
 		} else {
 			fileLink = update.Message.Text
-			break
 		}
+		break
 	}
 
 	// Ask for the download path
@@ -124,6 +137,36 @@ func (b *Bot) HandleDownloadCommand(updates <-chan tgbotapi.Update, chatID int64
 
 	// Poll download status every minute until it's completed
 	go b.WaitForDownload(torrentID, chatID, transmission)
+}
+
+func downloadTorrent(torrentpath string, url string) (err error) {
+
+	// Create the file
+	out, err := os.Create(torrentpath)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	// Get the data
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// Check server response
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("bad status: %s", resp.Status)
+	}
+
+	// Writer the body to file
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // WaitForDownload is designed to be launched as a subroutine and wait for the download and inform the user
