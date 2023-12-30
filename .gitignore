@@ -25,3 +25,7 @@ torrents
 
 # credentials
 config/config.yaml
+rss
+
+# Editor
+.vscode
