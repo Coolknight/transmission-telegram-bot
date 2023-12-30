@@ -7,6 +7,7 @@ This Telegram bot is designed to interact with a Transmission daemon for initiat
 - Accepts commands:
   - `/torrent`: Upload a torrent file
   - `/magnet`: Input a magnet link
+  - `/rss`: Adds a new feed to transmission-rss
   - `/help`: Show available commands
 
 ## Installation and Setup
@@ -53,8 +54,23 @@ transmission_password: "YOUR_TRANSMISSION_PASSWORD"
 
 ## Usage
 
-- Start the bot by running the executable (yourbot).
+- Start the bot by running the executable (transmission-telegram-bot).
 - Interact with the bot via Telegram using the commands mentioned above.
+
+### Docker-Compose
+
+```yaml
+version: '2'
+services:
+    telegram-bot:
+        container_name: telegram-bot
+        image: coolknight/transmission-telegram-bot:latest
+        volumes:
+        - <path to your config>:/config
+        - <path to your transmission-rss>:/rss
+        - /var/run/docker.sock:/var/run/docker.sock
+        restart: unless-stopped
+```
 
 ## Contributors
 
