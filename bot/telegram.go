@@ -8,7 +8,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/Coolknight/transmission-telegram-bot/dockerhandler"
 	"github.com/Coolknight/transmission-telegram-bot/transmission"
+	"github.com/Coolknight/transmission-telegram-bot/yamlhandler"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
@@ -50,16 +52,22 @@ func (b *Bot) Start(transmission *transmission.Client) {
 
 		switch update.Message.Text {
 		case "/torrent":
+			log.Println("Received /torrent command")
 			b.HandleDownloadCommand(updates, update.Message.Chat.ID, transmission, true)
 		case "/magnet":
+			log.Println("Received /magnet command")
 			b.HandleDownloadCommand(updates, update.Message.Chat.ID, transmission, false)
+		case "/rss":
+			log.Println("Received /rss command")
+			b.HandleRSSAdition(updates, update.Message.Chat.ID)
 		case "/help":
+			log.Println("Received /help command")
 			b.HandleHelpCommand(update)
 		default:
+			log.Printf("Received unknown %s command\n", update.Message.Text)
 			b.HandleDefault(update)
 		}
 	}
-	fmt.Println("d")
 }
 
 // HandleDownloadCommand handles /torrent and /magnet commands
@@ -132,6 +140,7 @@ func (b *Bot) HandleDownloadCommand(updates <-chan tgbotapi.Update, chatID int64
 	}
 
 	// Notify the user that the download has started
+	log.Println("Download started")
 	startMsg := tgbotapi.NewMessage(chatID, "Download started!")
 	b.BotAPI.Send(startMsg)
 
@@ -196,6 +205,57 @@ func (b *Bot) WaitForDownload(torrentID, chatID int64, transmission *transmissio
 		}
 	}
 	return nil
+}
+
+// HandleRSSAdition handles /rss command, adding the new feed and restarting the docker
+func (b *Bot) HandleRSSAdition(updates <-chan tgbotapi.Update, chatID int64) {
+	// Initialize the variables for file/link and download path
+	var rssUrl, downloadPath string
+
+	// Ask for the rss url
+	msg := tgbotapi.NewMessage(chatID, "Enter the RSS url:")
+	b.BotAPI.Send(msg)
+
+	// Listen for the user's input for the download path
+	for update := range updates {
+		if update.Message == nil {
+			continue
+		}
+		// Extract the download path
+		rssUrl = update.Message.Text
+		break
+	}
+
+	// Ask for the download path
+	msg = tgbotapi.NewMessage(chatID, "Enter the download path:")
+	b.BotAPI.Send(msg)
+
+	// Listen for the user's input for the download path
+	for update := range updates {
+		if update.Message == nil {
+			continue
+		}
+		// Extract the download path
+		downloadPath = update.Message.Text
+		break
+	}
+
+	log.Printf("Adding feed to yaml...")
+	// Add the new feed to the config file
+	if err := yamlhandler.AddFeedToYAML(rssUrl, downloadPath); err != nil {
+		log.Println("Error adding feed to yaml: ", err)
+		return
+	}
+	log.Printf("Done.\n")
+
+	// Restart the docker so it starts watching the new feed
+	log.Printf("Restarting Transmission-rss Docker...")
+	if err := dockerhandler.RestartContainer("transmission-rss"); err != nil {
+		log.Println("error restarting rss docker: ", err)
+		return
+	}
+	log.Printf("Done.\n")
+
 }
 
 // HandleHelpCommand handles the /help command
