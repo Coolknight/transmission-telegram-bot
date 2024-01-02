@@ -50,76 +50,97 @@ func (b *Bot) Start(transmission *transmission.Client) {
 			continue
 		}
 
-		switch update.Message.Text {
-		case "/torrent":
-			log.Println("Received /torrent command")
-			b.HandleDownloadCommand(updates, update.Message.Chat.ID, transmission, true)
-		case "/magnet":
-			log.Println("Received /magnet command")
-			b.HandleDownloadCommand(updates, update.Message.Chat.ID, transmission, false)
-		case "/rss":
-			log.Println("Received /rss command")
-			b.HandleRSSAdition(updates, update.Message.Chat.ID)
-		case "/help":
-			log.Println("Received /help command")
-			b.HandleHelpCommand(update)
-		default:
-			log.Printf("Received unknown %s command\n", update.Message.Text)
-			b.HandleDefault(update)
+		if update.Message.Document != nil {
+			log.Println("Received a torrent file")
+			b.HandleTorrent(updates, update, transmission)
+		} else {
+			switch update.Message.Text {
+			case "/torrent":
+				log.Println("Received /torrent command")
+				b.HandleTorrentCommand(updates, update.Message.Chat.ID, transmission)
+			case "/magnet":
+				log.Println("Received /magnet command")
+				b.HandleMagnetLink(updates, update.Message.Chat.ID, transmission)
+			case "/rss":
+				log.Println("Received /rss command")
+				b.HandleRSSAdition(updates, update.Message.Chat.ID)
+			case "/help":
+				log.Println("Received /help command")
+				b.HandleHelpCommand(update)
+			default:
+				log.Printf("Received unknown %s command\n", update.Message.Text)
+				b.HandleDefault(update)
+			}
 		}
 	}
 }
 
-// HandleDownloadCommand handles /torrent and /magnet commands
-func (b *Bot) HandleDownloadCommand(updates <-chan tgbotapi.Update, chatID int64, transmission *transmission.Client, isTorrent bool) {
-	// Ask for either a torrent file or magnet link based on isTorrent flag
-	var requestMessage string
-	if isTorrent {
-		requestMessage = "Please upload the torrent file."
-	} else {
-		requestMessage = "Please enter the magnet link:"
+// HandleTorrent handles the process once a torrent file has been uploaded
+func (b *Bot) HandleTorrent(updates <-chan tgbotapi.Update, update tgbotapi.Update, transmission *transmission.Client) {
+	// Get the torrent from the message
+	file, err := b.BotAPI.GetFile(tgbotapi.FileConfig{FileID: update.Message.Document.FileID})
+	if err != nil {
+		log.Println("Error getting file link:", err)
+		return
 	}
+
+	fileLink, err := getTorrent(b, update.Message.Document.FileID, file)
+	if err != nil {
+		log.Printf("Error getting torrent, aborting: %v", err)
+		return
+	}
+
+	handleDownload(b, updates, update.Message.Chat.ID, transmission, fileLink)
+}
+
+// HandleTorrentCommand handles /torrent command which is ask for the torrent and then handle it like a direct upload
+func (b *Bot) HandleTorrentCommand(updates <-chan tgbotapi.Update, chatID int64, transmission *transmission.Client) {
+	requestMessage := "Please send the torrent file:"
 
 	msg := tgbotapi.NewMessage(chatID, requestMessage)
 	b.BotAPI.Send(msg)
 
-	// Initialize the variables for file/link and download path
-	var fileLink, downloadPath string
-
-	// Listen for the user's input
+	// Listen for the user's input for the magnet link
 	for update := range updates {
 		if update.Message == nil {
 			continue
 		}
-		// Handle the user's input based on isTorrent flag
-		if isTorrent {
-			if update.Message.Document != nil {
-				file, err := b.BotAPI.GetFile(tgbotapi.FileConfig{FileID: update.Message.Document.FileID})
-				if err != nil {
-					log.Println("Error getting file link:", err)
-					// Handle the error as needed
-					return
-				}
-				// Create folder if does not exist
-				if _, err := os.Stat("torrents"); os.IsNotExist(err) {
-					err := os.Mkdir("torrents", 0755)
-					if err != nil {
-						log.Panic("Cannot create folder for torrents:", err)
-					}
-				}
-				fileLink = fmt.Sprintf("torrents/%s.torrent", update.Message.Document.FileID)
-				torrentURL := fmt.Sprintf("https://api.telegram.org/file/bot%s/%s", b.BotAPI.Token, file.FilePath)
-				downloadTorrent(fileLink, torrentURL)
-			}
 
-		} else {
-			fileLink = update.Message.Text
+		if update.Message.Document != nil {
+			b.HandleTorrent(updates, update, transmission)
 		}
 		break
 	}
+}
+
+// HandleMagnetLink handles the /magnet command
+func (b *Bot) HandleMagnetLink(updates <-chan tgbotapi.Update, chatID int64, transmission *transmission.Client) {
+	var fileLink string
+
+	requestMessage := "Please enter the magnet link:"
+
+	msg := tgbotapi.NewMessage(chatID, requestMessage)
+	b.BotAPI.Send(msg)
+
+	// Listen for the user's input for the magnet link
+	for update := range updates {
+		if update.Message == nil {
+			continue
+		}
+
+		fileLink = update.Message.Text
+		break
+	}
+
+	handleDownload(b, updates, chatID, transmission, fileLink)
+}
+
+// handleDownload handles the common logic for getting the download path and starting the actual download
+func handleDownload(b *Bot, updates <-chan tgbotapi.Update, chatID int64, transmission *transmission.Client, fileLink string) {
+	var downloadPath string
 
 	// Ask for the download path
-	msg = tgbotapi.NewMessage(chatID, "Enter the download path:")
+	msg := tgbotapi.NewMessage(chatID, "Enter the download path:")
 	b.BotAPI.Send(msg)
 
 	// Listen for the user's input for the download path
@@ -127,6 +148,7 @@ func (b *Bot) HandleDownloadCommand(updates <-chan tgbotapi.Update, chatID int64
 		if update.Message == nil {
 			continue
 		}
+
 		// Extract the download path
 		downloadPath = update.Message.Text
 		break
@@ -148,34 +170,47 @@ func (b *Bot) HandleDownloadCommand(updates <-chan tgbotapi.Update, chatID int64
 	go b.WaitForDownload(torrentID, chatID, transmission)
 }
 
-func downloadTorrent(torrentpath string, url string) (err error) {
+// getTorrent handles processing of torrent files and returns the path on disk of the torrent file
+func getTorrent(b *Bot, fileID string, file tgbotapi.File) (string, error) {
+	fileLink := fmt.Sprintf("torrents/%s.torrent", fileID)
+
+	// Create folder if does not exist
+	if _, err := os.Stat("torrents"); os.IsNotExist(err) {
+		err := os.Mkdir("torrents", 0755)
+		if err != nil {
+			log.Panic("Cannot create folder for torrents:", err)
+		}
+	}
+
+	// Download torrent file
+	torrentURL := fmt.Sprintf("https://api.telegram.org/file/bot%s/%s", b.BotAPI.Token, file.FilePath)
 
 	// Create the file
-	out, err := os.Create(torrentpath)
+	out, err := os.Create(fileLink)
 	if err != nil {
-		return err
+		return "", fmt.Errorf("Error creating torrent file: %v", err)
 	}
 	defer out.Close()
 
 	// Get the data
-	resp, err := http.Get(url)
+	resp, err := http.Get(torrentURL)
 	if err != nil {
-		return err
+		return "", fmt.Errorf("Error getting file from http: %v", err)
 	}
 	defer resp.Body.Close()
 
 	// Check server response
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("bad status: %s", resp.Status)
+		return "", fmt.Errorf("bad status: %s", resp.Status)
 	}
 
 	// Writer the body to file
 	_, err = io.Copy(out, resp.Body)
 	if err != nil {
-		return err
+		return "", fmt.Errorf("Error writing file: %v", err)
 	}
 
-	return nil
+	return fileLink, nil
 }
 
 // WaitForDownload is designed to be launched as a subroutine and wait for the download and inform the user
@@ -256,6 +291,9 @@ func (b *Bot) HandleRSSAdition(updates <-chan tgbotapi.Update, chatID int64) {
 	}
 	log.Printf("Done.\n")
 
+	// Tell the user the new feed has been created
+	msg = tgbotapi.NewMessage(chatID, "Feed created!")
+	b.BotAPI.Send(msg)
 }
 
 // HandleHelpCommand handles the /help command
