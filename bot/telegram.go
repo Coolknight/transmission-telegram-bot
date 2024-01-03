@@ -6,9 +6,12 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Coolknight/transmission-telegram-bot/dockerhandler"
+	"github.com/Coolknight/transmission-telegram-bot/screentime"
 	"github.com/Coolknight/transmission-telegram-bot/transmission"
 	"github.com/Coolknight/transmission-telegram-bot/yamlhandler"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
@@ -54,21 +57,21 @@ func (b *Bot) Start(transmission *transmission.Client) {
 			log.Println("Received a torrent file")
 			b.HandleTorrent(updates, update, transmission)
 		} else {
-			switch update.Message.Text {
+			log.Printf("Received the following command: %s\n", update.Message.Text)
+			command := strings.Fields(update.Message.Text)[0]
+			switch command {
 			case "/torrent":
-				log.Println("Received /torrent command")
 				b.HandleTorrentCommand(updates, update.Message.Chat.ID, transmission)
 			case "/magnet":
-				log.Println("Received /magnet command")
 				b.HandleMagnetLink(updates, update.Message.Chat.ID, transmission)
 			case "/rss":
-				log.Println("Received /rss command")
 				b.HandleRSSAdition(updates, update.Message.Chat.ID)
+			case "/screen":
+				b.HandleScreentime(update)
 			case "/help":
-				log.Println("Received /help command")
 				b.HandleHelpCommand(update)
 			default:
-				log.Printf("Received unknown %s command\n", update.Message.Text)
+				log.Printf("unknown %s command\n", update.Message.Text)
 				b.HandleDefault(update)
 			}
 		}
@@ -188,14 +191,14 @@ func getTorrent(b *Bot, fileID string, file tgbotapi.File) (string, error) {
 	// Create the file
 	out, err := os.Create(fileLink)
 	if err != nil {
-		return "", fmt.Errorf("Error creating torrent file: %v", err)
+		return "", fmt.Errorf("error creating torrent file: %v", err)
 	}
 	defer out.Close()
 
 	// Get the data
 	resp, err := http.Get(torrentURL)
 	if err != nil {
-		return "", fmt.Errorf("Error getting file from http: %v", err)
+		return "", fmt.Errorf("error getting file from http: %v", err)
 	}
 	defer resp.Body.Close()
 
@@ -207,7 +210,7 @@ func getTorrent(b *Bot, fileID string, file tgbotapi.File) (string, error) {
 	// Writer the body to file
 	_, err = io.Copy(out, resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("Error writing file: %v", err)
+		return "", fmt.Errorf("error writing file: %v", err)
 	}
 
 	return fileLink, nil
@@ -294,6 +297,63 @@ func (b *Bot) HandleRSSAdition(updates <-chan tgbotapi.Update, chatID int64) {
 	// Tell the user the new feed has been created
 	msg = tgbotapi.NewMessage(chatID, "Feed created!")
 	b.BotAPI.Send(msg)
+}
+
+// HandleScreentime handles /screen command
+func (b *Bot) HandleScreentime(update tgbotapi.Update) {
+	// Possible commands are:
+	// /screen <kidname> start
+	// /screen <kidname> add <minutes> <description>
+	// /screen <kidname> take <minutes> <description>
+	// /screen <kidname> log
+
+	// Split the command into words
+	words := strings.Fields(update.Message.Text)
+
+	kidName := words[1]
+	command := words[2]
+
+	switch command {
+	case "start":
+		// Initialize screentime for the specified kid
+		screentime.Initialize(kidName)
+
+	case "log":
+		// Retrieve accountability info for the kid and send it to the user
+		accountability, err := screentime.GetAccountability(kidName)
+		if err != nil {
+			log.Printf("error getting accountability: %v", err)
+			return
+		}
+
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, accountability)
+		b.BotAPI.Send(msg)
+
+	case "add":
+		minutes, err := strconv.Atoi(words[3])
+		if err != nil {
+			log.Printf("converting minutes to int: %v", err)
+			return
+		}
+		// The words from fourth to the last one form the description
+		description := strings.Join(words[4:], " ")
+		// Add minutes to the kid's screentime with provided description
+		screentime.AddMinutes(kidName, description, minutes)
+
+	case "take":
+		minutes, err := strconv.Atoi(words[3])
+		if err != nil {
+			return
+		}
+		// Join the remaining words to form the description
+		description := strings.Join(words[4:], " ")
+		// Subtract minutes from the kid's screentime with provided description
+		screentime.SubtractMinutes(kidName, description, minutes)
+
+	default:
+		// Log unknown subcommands and do nothing
+		log.Printf("unknown subcommand %s, aborting", command)
+	}
 }
 
 // HandleHelpCommand handles the /help command

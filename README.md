@@ -8,6 +8,12 @@ This Telegram bot is designed to interact with a Transmission daemon for initiat
   - `/torrent`: Upload a torrent file
   - `/magnet`: Input a magnet link
   - `/rss`: Adds a new feed to transmission-rss
+  - `/screen`: This is a game for handling my kids screen time
+    - Possible subcommands are:
+	  -  `/screen <kidname> start`
+	  -  `/screen <kidname> add <minutes> <description>`
+	  -  `/screen <kidname> take <minutes> <description>`
+	  -  `/screen <kidname> log`
   - `/help`: Show available commands
 
 ## Installation and Setup
