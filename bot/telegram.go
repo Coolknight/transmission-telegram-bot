@@ -310,13 +310,17 @@ func (b *Bot) HandleScreentime(update tgbotapi.Update) {
 	// Split the command into words
 	words := strings.Fields(update.Message.Text)
 
-	kidName := words[1]
+	// Ensure the kid name is always the same using lower case.
+	kidName := strings.ToLower(words[1])
 	command := words[2]
+
+	var msg tgbotapi.MessageConfig
 
 	switch command {
 	case "start":
 		// Initialize screentime for the specified kid
 		screentime.Initialize(kidName)
+		msg = tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("%s Initialized", kidName))
 
 	case "log":
 		// Retrieve accountability info for the kid and send it to the user
@@ -326,8 +330,7 @@ func (b *Bot) HandleScreentime(update tgbotapi.Update) {
 			return
 		}
 
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, accountability)
-		b.BotAPI.Send(msg)
+		msg = tgbotapi.NewMessage(update.Message.Chat.ID, accountability)
 
 	case "add":
 		minutes, err := strconv.Atoi(words[3])
@@ -339,6 +342,7 @@ func (b *Bot) HandleScreentime(update tgbotapi.Update) {
 		description := strings.Join(words[4:], " ")
 		// Add minutes to the kid's screentime with provided description
 		screentime.AddMinutes(kidName, description, minutes)
+		msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Added")
 
 	case "take":
 		minutes, err := strconv.Atoi(words[3])
@@ -349,11 +353,14 @@ func (b *Bot) HandleScreentime(update tgbotapi.Update) {
 		description := strings.Join(words[4:], " ")
 		// Subtract minutes from the kid's screentime with provided description
 		screentime.SubtractMinutes(kidName, description, minutes)
+		msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Taken")
 
 	default:
 		// Log unknown subcommands and do nothing
 		log.Printf("unknown subcommand %s, aborting", command)
 	}
+
+	b.BotAPI.Send(msg)
 }
 
 // HandleHelpCommand handles the /help command
