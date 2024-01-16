@@ -370,9 +370,11 @@ func (b *Bot) HandleHelpCommand(update tgbotapi.Update) {
 
 	// Create the help message with available commands
 	helpMessage := "Available commands:\n" +
-		"/torrent - Upload a torrent file\n" +
-		"/magnet - Input a magnet link\n" +
-		"/help - Show available commands"
+        "/torrent - Upload a torrent file\n" +
+        "/magnet - Input a magnet link\n" +
+        "/rss - Input a rss feed into transmission-rss" +
+        "/screen - Screentime management for kids" +
+        "/help - Show available commands"
 
 	// Send the help message to the user
 	msg := tgbotapi.NewMessage(chatID, helpMessage)
