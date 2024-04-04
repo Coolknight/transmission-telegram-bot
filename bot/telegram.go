@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Coolknight/transmission-telegram-bot/dockerhandler"
+	"github.com/Coolknight/transmission-telegram-bot/scanner"
 	"github.com/Coolknight/transmission-telegram-bot/screentime"
 	"github.com/Coolknight/transmission-telegram-bot/transmission"
 	"github.com/Coolknight/transmission-telegram-bot/yamlhandler"
@@ -68,6 +69,8 @@ func (b *Bot) Start(transmission *transmission.Client) {
 				b.HandleRSSAdition(updates, update.Message.Chat.ID)
 			case "/screen":
 				b.HandleScreentime(update)
+			case "/scan":
+				b.HandleScanner(update)
 			case "/help":
 				b.HandleHelpCommand(update)
 			default:
@@ -361,6 +364,19 @@ func (b *Bot) HandleScreentime(update tgbotapi.Update) {
 	}
 
 	b.BotAPI.Send(msg)
+}
+
+// HandleScreentime handles /screen command
+func (b *Bot) HandleScanner(update tgbotapi.Update) {
+	imageBytes, err := scanner.ScanImage()
+	if err != nil {
+		log.Printf("Failed to scan image: %v", err)
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Failed to scan image. Check if Scanner is on")
+		b.BotAPI.Send(msg)
+		return
+	}
+	msgPhoto := tgbotapi.NewPhotoUpload(update.Message.Chat.ID, tgbotapi.FileBytes{Name: "image.jpg", Bytes: imageBytes})
+	b.BotAPI.Send(msgPhoto)
 }
 
 // HandleHelpCommand handles the /help command
