@@ -366,7 +366,7 @@ func (b *Bot) HandleScreentime(update tgbotapi.Update) {
 	b.BotAPI.Send(msg)
 }
 
-// HandleScreentime handles /screen command
+// HandleScanner handles /scan command
 func (b *Bot) HandleScanner(update tgbotapi.Update) {
 	imageBytes, err := scanner.ScanImage()
 	if err != nil {
