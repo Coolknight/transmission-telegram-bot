@@ -368,15 +368,28 @@ func (b *Bot) HandleScreentime(update tgbotapi.Update) {
 
 // HandleScanner handles /scan command
 func (b *Bot) HandleScanner(update tgbotapi.Update) {
-	imageBytes, err := scanner.ScanImage()
+	fileName, err := scanner.ScanImage()
 	if err != nil {
 		log.Printf("Failed to scan image: %v", err)
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Failed to scan image. Check if Scanner is on")
 		b.BotAPI.Send(msg)
 		return
 	}
-	msgPhoto := tgbotapi.NewPhotoUpload(update.Message.Chat.ID, tgbotapi.FileBytes{Name: "image.jpg", Bytes: imageBytes})
-	b.BotAPI.Send(msgPhoto)
+
+	// Create a new photo upload message with the image file
+	photo := tgbotapi.NewPhotoUpload(update.Message.Chat.ID, fileName)
+
+	// Send the photo as a response
+	_, err = b.BotAPI.Send(photo)
+	if err != nil {
+		log.Printf("Failed to send scanned image: %v", err)
+	}
+
+	// Remove the temporary image file
+	err = os.Remove(fileName)
+	if err != nil {
+		log.Printf("Failed to remove temporary image file: %v", err)
+	}
 }
 
 // HandleHelpCommand handles the /help command
