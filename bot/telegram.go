@@ -378,18 +378,21 @@ func (b *Bot) HandleScanner(update tgbotapi.Update) {
 
 	// Create a new photo upload message with the image file
 	photo := tgbotapi.NewPhotoUpload(update.Message.Chat.ID, fileName)
+	log.Printf("Created photo message\n")
 
 	// Send the photo as a response
 	_, err = b.BotAPI.Send(photo)
 	if err != nil {
 		log.Printf("Failed to send scanned image: %v", err)
 	}
+	log.Printf("photo sent\n")
 
 	// Remove the temporary image file
 	err = os.Remove(fileName)
 	if err != nil {
 		log.Printf("Failed to remove temporary image file: %v", err)
 	}
+	log.Printf("removed temporary image file\n")
 }
 
 // HandleHelpCommand handles the /help command

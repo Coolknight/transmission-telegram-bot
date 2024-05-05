@@ -11,11 +11,13 @@ import (
 
 func ScanImage() (string, error) {
 	cmd := exec.Command("scanimage", "--format=jpeg", "--resolution=300")
+	log.Printf("Command scanimage executed\n")
 
 	output, err := cmd.Output()
 	if err != nil {
 		return "", err
 	}
+	log.Printf("Output stored in var\n")
 
 	// Extracting image bytes from the output
 	parts := strings.Split(string(output), "\n")
@@ -26,8 +28,10 @@ func ScanImage() (string, error) {
 			break
 		}
 	}
+	log.Printf("Extracted image bytes from output\n")
 
 	if startIndex == -1 {
+		log.Printf("Image not found in output\n")
 		return "", nil // Image not found in output
 	}
 
@@ -40,6 +44,7 @@ func ScanImage() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	log.Printf("image file created\n")
 
 	return fileName, nil
 }
