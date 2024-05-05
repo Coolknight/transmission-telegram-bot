@@ -6,12 +6,12 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/Coolknight/transmission-telegram-bot/dockerhandler"
-	"github.com/Coolknight/transmission-telegram-bot/scanner"
 	"github.com/Coolknight/transmission-telegram-bot/screentime"
 	"github.com/Coolknight/transmission-telegram-bot/transmission"
 	"github.com/Coolknight/transmission-telegram-bot/yamlhandler"
@@ -368,7 +368,10 @@ func (b *Bot) HandleScreentime(update tgbotapi.Update) {
 
 // HandleScanner handles /scan command
 func (b *Bot) HandleScanner(update tgbotapi.Update) {
-	fileName, err := scanner.ScanImage()
+	fileName := "/tmp/scanned_image.jpg"
+	cmd := exec.Command("scanimage", "--format=jpeg", "--resolution=300", fmt.Sprintf("--output-file=%s", fileName))
+	_, err := cmd.Output()
+
 	if err != nil {
 		log.Printf("Failed to scan image: %v", err)
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Failed to scan image. Check the logs")
@@ -378,21 +381,19 @@ func (b *Bot) HandleScanner(update tgbotapi.Update) {
 
 	// Create a new photo upload message with the image file
 	photo := tgbotapi.NewPhotoUpload(update.Message.Chat.ID, fileName)
-	log.Printf("Created photo message\n")
 
 	// Send the photo as a response
 	_, err = b.BotAPI.Send(photo)
 	if err != nil {
 		log.Printf("Failed to send scanned image: %v", err)
 	}
-	log.Printf("photo sent\n")
 
 	// Remove the temporary image file
 	err = os.Remove(fileName)
 	if err != nil {
 		log.Printf("Failed to remove temporary image file: %v", err)
 	}
-	log.Printf("removed temporary image file\n")
+	log.Printf("Image scanned and sent\n")
 }
 
 // HandleHelpCommand handles the /help command
