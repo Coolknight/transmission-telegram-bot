@@ -371,7 +371,7 @@ func (b *Bot) HandleScanner(update tgbotapi.Update) {
 	fileName, err := scanner.ScanImage()
 	if err != nil {
 		log.Printf("Failed to scan image: %v", err)
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Failed to scan image. Check if Scanner is on")
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Failed to scan image. Check the logs")
 		b.BotAPI.Send(msg)
 		return
 	}
@@ -399,11 +399,11 @@ func (b *Bot) HandleHelpCommand(update tgbotapi.Update) {
 
 	// Create the help message with available commands
 	helpMessage := "Available commands:\n" +
-        "/torrent - Upload a torrent file\n" +
-        "/magnet - Input a magnet link\n" +
-        "/rss - Input a rss feed into transmission-rss" +
-        "/screen - Screentime management for kids" +
-        "/help - Show available commands"
+		"/torrent - Upload a torrent file\n" +
+		"/magnet - Input a magnet link\n" +
+		"/rss - Input a rss feed into transmission-rss" +
+		"/screen - Screentime management for kids" +
+		"/help - Show available commands"
 
 	// Send the help message to the user
 	msg := tgbotapi.NewMessage(chatID, helpMessage)

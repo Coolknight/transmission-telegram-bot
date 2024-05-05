@@ -9,7 +9,7 @@ RUN apt update && apt install -y \
     sane-utils \
  && rm -rf /var/lib/apt/lists/*
 
-COPY --from=build /app /app
+COPY --from=build /app/transmission-telegram-bot /app/transmission-telegram-bot
 
 # Run
 ENTRYPOINT ["/app/transmission-telegram-bot"]

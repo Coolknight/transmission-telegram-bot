@@ -1,6 +1,7 @@
 package scanner
 
 import (
+	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -31,7 +32,8 @@ func ScanImage() (string, error) {
 	}
 
 	imageBytes := []byte(strings.Join(parts[startIndex+1:], "\n"))
-	fileName := "scanned_image.jpg"
+	log.Printf("Scanned %d bytes\n", len(imageBytes))
+	fileName := "/tmp/scanned_image.jpg"
 
 	// Write image bytes to a JPG file
 	err = os.WriteFile(fileName, imageBytes, 0644)
