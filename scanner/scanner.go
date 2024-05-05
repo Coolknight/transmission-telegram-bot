@@ -6,7 +6,8 @@ import (
 	"strings"
 )
 
-// ScanImage scans an image and saves it to a JPG file, returning the filename and image bytes.
+// ScanImage scans an image and saves it to a JPG file, returning the filename.
+
 func ScanImage() (string, error) {
 	cmd := exec.Command("scanimage", "--format=jpeg", "--resolution=300")
 
