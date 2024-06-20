@@ -1,6 +1,6 @@
 # Telegram Bot for Transmission Daemon
 
-This Telegram bot is designed to interact with a Transmission daemon for initiating downloads using either torrent files or magnet links.
+This Telegram bot was designed to interact with a Transmission daemon for initiating downloads using either torrent files or magnet links. But with the time I've found new exciting ways of using this bot so now is a multi-purpose bot :D
 
 ## Features
 
@@ -9,12 +9,15 @@ This Telegram bot is designed to interact with a Transmission daemon for initiat
   - `/magnet`: Input a magnet link
   - `/rss`: Adds a new feed to transmission-rss
   - `/screen`: This is a game for handling my kids screen time
+  - `/scan`: Scans whatever is on the scanner tray and sends the scanned image back.
     - Possible subcommands are:
 	  -  `/screen <kidname> start`
 	  -  `/screen <kidname> add <minutes> <description>`
 	  -  `/screen <kidname> take <minutes> <description>`
 	  -  `/screen <kidname> log`
   - `/help`: Show available commands
+
+Other than accepting commands it also serves as a SolarmanSmart API alert daemon so when the inverter is alerting it sends the alert through telegram.
 
 ## Installation and Setup
 
@@ -47,16 +50,24 @@ This Telegram bot is designed to interact with a Transmission daemon for initiat
 Fill in the required details in the `config.yaml` file:
 
 ```yaml
-bot_token: "YOUR_TELEGRAM_BOT_TOKEN"
-transmission_url: "http://transmission_server_address:port/rpc"
-transmission_user: "YOUR_TRANSMISSION_USERNAME"
-transmission_password: "YOUR_TRANSMISSION_PASSWORD"
+transmission:
+    url: "transmission_server_ip_address"
+    user: "YOUR_TRANSMISSION_USERNAME"
+    password: "YOUR_TRANSMISSION_PASSWORD"
+solarman:
+    appId: "YOUR_SOLARMAN_API_APPID"
+    appSecret: "YOUR_SOLARMAN_API_APPSECRET"
+    email: "YOUR_SOLARMAN_EMAIL_ACCOUNT"
+    password: "YOUR_SHA256_ENCODED_PASSWORD"
+api:
+    authURL: https://globalapi.solarmanpv.com/account/v1.0/token
+    apiURL: https://globalapi.solarmanpv.com/device/v1.0/currentData
+telegram:
+    botToken: "YOUR_TELEGRAM_BOT_TOKEN"
+    chatID: "YOUR_TELEGRAM_CHATID"
+device:
+    deviceSn: "YOUR_DEVICE_SN"
 ```
-
-- bot_token: Your Telegram bot token obtained from BotFather.
-- transmission_url: URL for your Transmission server RPC.
-- transmission_user: Your Transmission username.
-- transmission_password: Your Transmission password.
 
 ## Usage
 

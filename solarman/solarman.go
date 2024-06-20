@@ -13,11 +13,6 @@ import (
 	"github.com/Coolknight/transmission-telegram-bot/config"
 )
 
-const (
-	authURL = "https://globalapi.solarmanpv.com/account/v1.0/token"
-	apiURL  = "https://globalapi.solarmanpv.com/device/v1.0/currentData"
-)
-
 type AuthResponse struct {
 	AccessToken  string `json:"access_token"`
 	TokenType    string `json:"token_type"`
@@ -49,7 +44,7 @@ type DeviceDataResponse struct {
 	RequestId   string     `json:"requestId"`
 }
 
-func getAuthToken(appId, appSecret, email, password string) (string, error) {
+func getAuthToken(appId, appSecret, email, password, authURL string) (string, error) {
 	payload := map[string]interface{}{
 		"appSecret": appSecret,
 		"email":     email,
@@ -91,7 +86,7 @@ func getAuthToken(appId, appSecret, email, password string) (string, error) {
 	return authResponse.AccessToken, nil
 }
 
-func pollAPI(deviceSn, accessToken string) (int, error) {
+func pollAPI(deviceSn, accessToken, apiURL string) (int, error) {
 	payload := map[string]interface{}{
 		"deviceSn": deviceSn,
 	}
@@ -156,18 +151,19 @@ func sendAlert(telegramBotToken, telegramChatID, message string) error {
 func deviceStateMessage(state int) string {
 	switch state {
 	case 1:
-		return "Device is online."
+		return "Inverter is online." // All OK
 	case 2:
-		return "Device is alerting."
+		return "Inverter is alerting." // Something is bad (no AC)
 	case 3:
-		return "Device is offline."
+		return "Inverter is offline." // There is no Sun
 	default:
-		return "Unknown device state."
+		return "Unknown inverter state."
 	}
 }
 
 func ApiAlert(cfg *config.Config) {
-	token, err := getAuthToken(cfg.Solarman.AppId, cfg.Solarman.AppSecret, cfg.Solarman.Email, cfg.Solarman.Password)
+	token, err := getAuthToken(cfg.Solarman.AppId, cfg.Solarman.AppSecret, cfg.Solarman.Email,
+		cfg.Solarman.Password, cfg.API.AuthURL)
 	if err != nil {
 		log.Fatalf("Error getting initial auth token: %v", err)
 	}
@@ -180,12 +176,13 @@ func ApiAlert(cfg *config.Config) {
 		if err != nil {
 			if err.Error() == "invalid token" {
 				log.Println("Token expired, fetching a new one.")
-				token, err = getAuthToken(cfg.Solarman.AppId, cfg.Solarman.AppSecret, cfg.Solarman.Email, cfg.Solarman.Password)
+				token, err = getAuthToken(cfg.Solarman.AppId, cfg.Solarman.AppSecret, cfg.Solarman.Email,
+					cfg.Solarman.Password, cfg.API.AuthURL)
 				if err != nil {
 					log.Printf("Error getting new auth token: %v", err)
 					continue
 				}
-				deviceState, err = pollAPI(cfg.Device.DeviceSn, token)
+				deviceState, err = pollAPI(cfg.Device.DeviceSn, token, cfg.API.ApiURL)
 				if err != nil {
 					log.Printf("Error polling API with new token: %v", err)
 					continue
@@ -197,7 +194,7 @@ func ApiAlert(cfg *config.Config) {
 		}
 
 		message := deviceStateMessage(deviceState)
-		if deviceState != 1 {
+		if deviceState == 2 {
 			err = sendAlert(cfg.Telegram.BotToken, cfg.Telegram.ChatID, fmt.Sprintf("Alert! %s", message))
 			if err != nil {
 				log.Printf("Error sending alert: %v", err)
