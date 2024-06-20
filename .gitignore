@@ -23,9 +23,5 @@ go.work
 # torrent files
 torrents
 
-# credentials
-config/config.yaml
-rss
-
 # Editor
 .vscode

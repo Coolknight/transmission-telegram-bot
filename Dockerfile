@@ -1,4 +1,4 @@
-FROM golang:1.21 AS build
+FROM golang:1.22 AS build
 WORKDIR /app
 ADD . /app/
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o transmission-telegram-bot .
