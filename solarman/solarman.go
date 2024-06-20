@@ -172,7 +172,7 @@ func ApiAlert(cfg *config.Config) {
 	defer ticker.Stop()
 
 	for range ticker.C {
-		deviceState, err := pollAPI(cfg.Device.DeviceSn, token)
+		deviceState, err := pollAPI(cfg.Device.DeviceSn, token, cfg.API.ApiURL)
 		if err != nil {
 			if err.Error() == "invalid token" {
 				log.Println("Token expired, fetching a new one.")
