@@ -1,29 +1,53 @@
 package config
 
 import (
-	"os"
+	"io/ioutil"
 
 	"gopkg.in/yaml.v2"
 )
 
 // Config struct to hold bot and Transmission configuration
 type Config struct {
-	BotToken             string `yaml:"bot_token"`
-	TransmissionURL      string `yaml:"transmission_url"`
-	TransmissionUser     string `yaml:"transmission_user"`
-	TransmissionPassword string `yaml:"transmission_password"`
+	Transmission struct {
+		URL      string `yaml:"url"`
+		User     string `yaml:"user"`
+		Password string `yaml:"password"`
+	} `yaml:"transmission"`
+
+	Solarman struct {
+		AppId     string `yaml:"appId"`
+		AppSecret string `yaml:"appSecret"`
+		Email     string `yaml:"email"`
+		Password  string `yaml:"password"`
+	} `yaml:"solarman"`
+
+	API struct {
+		AuthURL string `yaml:"authURL"`
+		ApiURL  string `yaml:"apiURL"`
+	} `yaml:"api"`
+
+	Telegram struct {
+		BotToken string `yaml:"botToken"`
+		ChatID   string `yaml:"chatID"`
+	} `yaml:"telegram"`
+
+	Device struct {
+		DeviceSn string `yaml:"deviceSn"`
+	} `yaml:"device"`
 }
 
-// LoadConfig loads configuration from a YAML file
-func LoadConfig(filename string) (Config, error) {
-	var config Config
-	file, err := os.ReadFile(filename)
+// ReadConfig loads configuration from a YAML file
+func ReadConfig(filename string) (*Config, error) {
+	data, err := ioutil.ReadFile(filename)
 	if err != nil {
-		return config, err
+		return nil, err
 	}
-	err = yaml.Unmarshal(file, &config)
+
+	var cfg Config
+	err = yaml.Unmarshal(data, &cfg)
 	if err != nil {
-		return config, err
+		return nil, err
 	}
-	return config, nil
+
+	return &cfg, nil
 }
