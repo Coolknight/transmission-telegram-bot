@@ -161,6 +161,11 @@ func deviceStateMessage(state int) string {
 	}
 }
 
+// ApiAlert periodically polls the Solarman API to check the device state and sends an alert
+// if the device state is 2 (indicating an alert condition). It uses the provided configuration
+// to authenticate with the API and send the alert message via Telegram.
+//
+// Note: This function runs indefinitely until an error occurs or the program is terminated.
 func ApiAlert(cfg *config.Config) {
 	token, err := getAuthToken(cfg.Solarman.AppId, cfg.Solarman.AppSecret, cfg.Solarman.Email,
 		cfg.Solarman.Password, cfg.API.AuthURL)
@@ -168,7 +173,8 @@ func ApiAlert(cfg *config.Config) {
 		log.Fatalf("Error getting initial auth token: %v", err)
 	}
 
-	ticker := time.NewTicker(1 * time.Minute)
+	alertingRetries := 1
+	ticker := time.NewTicker(time.Duration(alertingRetries) * time.Minute)
 	defer ticker.Stop()
 
 	for range ticker.C {
@@ -199,6 +205,11 @@ func ApiAlert(cfg *config.Config) {
 			if err != nil {
 				log.Printf("Error sending alert: %v", err)
 			}
+			alertingRetries++
+		} else {
+			alertingRetries = 1
 		}
+
+		ticker.Reset(time.Duration(alertingRetries) * time.Minute)
 	}
 }
