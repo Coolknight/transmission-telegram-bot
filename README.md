@@ -1,15 +1,15 @@
 # Telegram Bot for Transmission Daemon
 
-This Telegram bot was designed to interact with a Transmission daemon for initiating downloads using either torrent files or magnet links. But with the time I've found new exciting ways of using this bot so now is a multi-purpose bot :D
+This Telegram bot was designed to interact with a Transmission daemon for initiating downloads using either torrent files or magnet links. However, it has evolved into a multi-purpose bot with new exciting features.
 
 ## Features
 
-- Accepts commands:
+- Accepted commands:
   - `/torrent`: Upload a torrent file
   - `/magnet`: Input a magnet link
   - `/rss`: Adds a new feed to transmission-rss
+  - `/scan`: Scans whatever is on the scanner tray and sends the scanned image back
   - `/screen`: This is a game for handling my kids screen time
-  - `/scan`: Scans whatever is on the scanner tray and sends the scanned image back.
     - Possible subcommands are:
 	  -  `/screen <kidname> start`
 	  -  `/screen <kidname> add <minutes> <description>`
@@ -17,33 +17,42 @@ This Telegram bot was designed to interact with a Transmission daemon for initia
 	  -  `/screen <kidname> log`
   - `/help`: Show available commands
 
-Other than accepting commands it also serves as a SolarmanSmart API alert daemon so when the inverter is alerting it sends the alert through telegram.
+In addition to accepting commands, it also serves as a SolarmanSmart API alert daemon, sending alerts through Telegram when the inverter is alerting.
+
+## Solarman Alerting Daemon
+The Solarman Alerting Daemon is a crucial component of this Telegram bot. It enables real-time monitoring and alerting for SolarmanSmart API. By integrating with the Solarman API, the bot can send alerts through Telegram when the inverter is alerting. This feature ensures that users stay informed about any issues with their solar power system and can take prompt action.
+
+To configure the Solarman Alerting Daemon, you need to provide your Solarman API credentials in the `config.yaml` file. Once configured, the bot will automatically monitor the inverter's status and send alerts whenever necessary.
+
+Make sure to check the [Configuring the Bot](#configuring-the-bot) section for detailed instructions on setting up the Solarman Alerting Daemon.
+
+Don't miss out on this powerful feature that enhances the functionality of the Telegram Bot for Transmission Daemon. Keep track of your solar power system effortlessly and receive timely notifications right in your Telegram chat.
 
 ## Installation and Setup
 
 1. **Clone the Repository:**
 
-    ```bash
-    git clone https://github.com/Coolknight/transmission-telegram-bot.git
-    ```
+        ```bash
+        git clone https://github.com/Coolknight/transmission-telegram-bot.git
+        ```
 
 2. **Install Dependencies:**
 
-    ```bash
-    cd yourbot
-    go mod tidy
-    ```
+        ```bash
+        cd yourbot
+        go mod tidy
+        ```
 
 3. **Configuration:**
 
-    Create a `config.yaml` file in the `config` directory and fill in the required details (see [Configuring the Bot](#configuring-the-bot)).
+        Create a `config.yaml` file in the `config` directory and fill in the required details (see [Configuring the Bot](#configuring-the-bot)).
 
 4. **Build and Run:**
 
-    ```bash
-    go build -o transmission-telegram-bot main.go
-    ./transmission-telegram-bot
-    ```
+        ```bash
+        go build -o transmission-telegram-bot main.go
+        ./transmission-telegram-bot
+        ```
 
 ## Configuring the Bot
 
@@ -71,7 +80,7 @@ device:
 
 ## Usage
 
-- Start the bot by running the executable (transmission-telegram-bot).
+- Start the bot by running the executable (`transmission-telegram-bot`).
 - Interact with the bot via Telegram using the commands mentioned above.
 
 ### Docker-Compose
@@ -92,7 +101,6 @@ services:
 ## Contributors
 
 - [Manuel Mendoza](https://github.com/Coolknight)
-
 
 ## License
 
