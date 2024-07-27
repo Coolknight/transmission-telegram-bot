@@ -10,6 +10,7 @@ import (
 type Transmission struct {
 	URL      string `yaml:"url"`
 	Port     uint16 `yaml:"port"`
+	HTTPS    bool   `yaml:"https"`
 	User     string `yaml:"user"`
 	Password string `yaml:"password"`
 }

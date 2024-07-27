@@ -61,6 +61,8 @@ Fill in the required details in the `config.yaml` file:
 ```yaml
 transmission:
     url: "transmission_server_ip_address"
+    port: "TRANSMISSION_PORT" #Defaults to 9091
+    https: "BOOLEAN_FOR_HTTPS" #Defaults to false
     user: "YOUR_TRANSMISSION_USERNAME"
     password: "YOUR_TRANSMISSION_PASSWORD"
 solarman:

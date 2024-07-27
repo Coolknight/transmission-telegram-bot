@@ -13,7 +13,8 @@ type Client struct {
 // NewClient initializes a new Transmission client
 func NewClient(config config.Transmission) (*Client, error) {
 	advconf := transmissionrpc.AdvancedConfig{
-		Port: config.Port,
+		Port:  config.Port,
+		HTTPS: config.HTTPS,
 	}
 	client, err := transmissionrpc.New(config.URL, config.User,
 		config.Password, &advconf)
