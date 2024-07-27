@@ -7,33 +7,39 @@ import (
 )
 
 // Config struct to hold bot and Transmission configuration
+type Transmission struct {
+	URL      string `yaml:"url"`
+	Port     uint16 `yaml:"port"`
+	User     string `yaml:"user"`
+	Password string `yaml:"password"`
+}
+
+type Solarman struct {
+	AppId     string `yaml:"appId"`
+	AppSecret string `yaml:"appSecret"`
+	Email     string `yaml:"email"`
+	Password  string `yaml:"password"`
+}
+
+type API struct {
+	AuthURL string `yaml:"authURL"`
+	ApiURL  string `yaml:"apiURL"`
+}
+
+type Telegram struct {
+	BotToken string `yaml:"botToken"`
+	ChatID   string `yaml:"chatID"`
+}
+
+type Device struct {
+	DeviceSn string `yaml:"deviceSn"`
+}
 type Config struct {
-	Transmission struct {
-		URL      string `yaml:"url"`
-		User     string `yaml:"user"`
-		Password string `yaml:"password"`
-	} `yaml:"transmission"`
-
-	Solarman struct {
-		AppId     string `yaml:"appId"`
-		AppSecret string `yaml:"appSecret"`
-		Email     string `yaml:"email"`
-		Password  string `yaml:"password"`
-	} `yaml:"solarman"`
-
-	API struct {
-		AuthURL string `yaml:"authURL"`
-		ApiURL  string `yaml:"apiURL"`
-	} `yaml:"api"`
-
-	Telegram struct {
-		BotToken string `yaml:"botToken"`
-		ChatID   string `yaml:"chatID"`
-	} `yaml:"telegram"`
-
-	Device struct {
-		DeviceSn string `yaml:"deviceSn"`
-	} `yaml:"device"`
+	Transmission Transmission `yaml:"transmission"`
+	Solarman     Solarman     `yaml:"solarman"`
+	API          API          `yaml:"api"`
+	Telegram     Telegram     `yaml:"telegram"`
+	Device       Device       `yaml:"device"`
 }
 
 // ReadConfig loads configuration from a YAML file
@@ -47,6 +53,10 @@ func ReadConfig(filename string) (*Config, error) {
 	err = yaml.Unmarshal(data, &cfg)
 	if err != nil {
 		return nil, err
+	}
+
+	if cfg.Transmission.Port == 0 {
+		cfg.Transmission.Port = 9091
 	}
 
 	return &cfg, nil

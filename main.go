@@ -20,7 +20,7 @@ func main() {
 
 	// Initialize the Transmission client
 	log.Println("Initialize transmission client")
-	transmissionClient, err := transmission.NewClient(cfg.Transmission.URL, cfg.Transmission.User, cfg.Transmission.Password)
+	transmissionClient, err := transmission.NewClient(cfg.Transmission)
 	if err != nil {
 		log.Fatal("Error initializing Transmission client:", err)
 		return
