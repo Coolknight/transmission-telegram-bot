@@ -1,6 +1,7 @@
 package transmission
 
 import (
+	"github.com/Coolknight/transmission-telegram-bot/config"
 	"github.com/hekmon/transmissionrpc"
 )
 
@@ -10,8 +11,12 @@ type Client struct {
 }
 
 // NewClient initializes a new Transmission client
-func NewClient(url, user, password string) (*Client, error) {
-	client, err := transmissionrpc.New(url, user, password, nil)
+func NewClient(config config.Transmission) (*Client, error) {
+	advconf := transmissionrpc.AdvancedConfig{
+		Port: config.Port,
+	}
+	client, err := transmissionrpc.New(config.URL, config.User,
+		config.Password, &advconf)
 	if err != nil {
 		return nil, err
 	}
